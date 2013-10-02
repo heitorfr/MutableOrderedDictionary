@@ -106,6 +106,16 @@
     }
 }
 
+- (void)removeObjectAtIndex:(NSUInteger)index
+{
+    id key = [self._orderedKeys objectAtIndex:index];
+    if(key) {
+        [self._orderedKeys removeObjectAtIndex:index];
+        [self._dictionary removeObjectForKey:key];
+    }
+
+}
+
 - (void)removeAllObjects
 {
     [self._dictionary removeAllObjects];

@@ -24,6 +24,7 @@
 
 - (void)setObject:(id)anObject forKey:(id<NSCopying>)aKey;
 - (void)removeObjectForKey:(id<NSCopying>)aKey;
+- (void)removeObjectAtIndex:(NSUInteger)index;
 - (void)removeAllObjects;
 
 - (NSEnumerator *)keyEnumerator;

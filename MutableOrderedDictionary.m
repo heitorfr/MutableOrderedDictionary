@@ -8,18 +8,18 @@
 #import "MutableOrderedDictionary.h"
 
 @interface MutableOrderedDictionary ()
-@property(nonatomic,retain) NSMutableArray *_orderedKeys;
-@property(nonatomic,retain) NSMutableDictionary *_dictionary;
+@property(nonatomic,strong) NSMutableArray *orderedKeys;
+@property(nonatomic,strong) NSMutableDictionary *store;
 @end
 
 @implementation MutableOrderedDictionary
 
-@synthesize _orderedKeys;
-@synthesize _dictionary;
-
+////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark - Initialization
+////////////////////////////////////////////////////////////////////////////////////////////////////
 + (MutableOrderedDictionary *)dictionaryWithCapacity:(NSUInteger)capacity
 {
-    return [[[MutableOrderedDictionary alloc] initWithCapacity:capacity] autorelease];
+    return [[MutableOrderedDictionary alloc] initWithCapacity:capacity];
 }
 
 - (id)init
@@ -30,118 +30,137 @@
 - (id)initWithCapacity:(NSUInteger)capacity
 {
     if(self = [super init]) {
-        self._orderedKeys = [NSMutableArray arrayWithCapacity:capacity];
-        self._dictionary = [NSMutableDictionary dictionaryWithCapacity:capacity];
+        _orderedKeys = [NSMutableArray arrayWithCapacity:capacity];
+        _store = [NSMutableDictionary dictionaryWithCapacity:capacity];
     }
     return self;
 }
 
-- (void)dealloc
-{
-    [_orderedKeys release];
-    [_dictionary release];
-    [super dealloc];
-}
-
+////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark - Access
+////////////////////////////////////////////////////////////////////////////////////////////////////
 - (NSUInteger)count
 {
-    return [self._orderedKeys count];
-}
-
-- (id)objectForKey:(id<NSCopying>)aKey
-{
-    return [self._dictionary objectForKey:aKey];
-}
-
-
-- (id)objectAtIndex:(NSUInteger)index
-{
-    return [self._dictionary objectForKey:[self._orderedKeys objectAtIndex:index]];
+    return [self.orderedKeys count];
 }
 
 - (BOOL)containsKey:(id<NSCopying>)aKey
 {
-    return ([self._dictionary objectForKey:aKey] != nil);
+    return ([self.store objectForKey:aKey] != nil);
 }
 
 - (NSArray *)allValues
 {
-    return [self._dictionary allValues];
+    return [self.store allValues];
 }
 
 - (NSArray *)orderedValues
 {
-    NSMutableArray *values = [NSMutableArray arrayWithCapacity:self._dictionary.count];
-    [self._orderedKeys enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-        [values addObject:[self._dictionary objectForKey:obj]];
+    NSMutableArray *values = [NSMutableArray arrayWithCapacity:self.store.count];
+    [self.orderedKeys enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+        [values addObject:[self.store objectForKey:obj]];
     }];
-    return [[values copy] autorelease];
+    return [values copy];
+}
+
+
+- (NSDictionary*)dictionary
+{
+    return [self.store copy];
+}
+
+- (NSEnumerator *)keyEnumerator
+{
+    return self.orderedKeys.objectEnumerator;
 }
 
 - (NSSet *)keySet
 {
-    return [NSSet setWithArray:self._orderedKeys];
+    return [NSSet setWithArray:self.orderedKeys];
 }
 
-- (NSDictionary*)dictionary
+////////////////////////////////////////////////////////////////////////////////////////////////////
+- (id)objectForKey:(id)aKey
 {
-    return [[self._dictionary copy] autorelease];
+    return [self.store objectForKey:aKey];
 }
 
+- (id)objectForKeyedSubscript:(id)aKey
+{
+    return [self.store objectForKey:aKey];
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+- (id)objectAtIndex:(NSUInteger)index
+{
+    return [self.store objectForKey:[self.orderedKeys objectAtIndex:index]];
+}
+
+- (id)objectAtIndexedSubscript:(NSInteger)index
+{
+    return [self objectAtIndex:index];
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma mark - Mutation
+////////////////////////////////////////////////////////////////////////////////////////////////////
 - (void)setObject:(id)anObject forKey:(id<NSCopying>)aKey
 {
-    if([self._dictionary objectForKey:aKey]) {
-        [self._orderedKeys removeObject:aKey];
+    if([self.store objectForKey:aKey]) {
+        [self.orderedKeys removeObject:aKey];
     }
-    [self._dictionary setObject:anObject forKey:aKey];
-    [self._orderedKeys addObject:aKey];
+    [self.store setObject:anObject forKey:aKey];
+    [self.orderedKeys addObject:aKey];
 }
 
+- (void)setObject:(id)anObject forKeyedSubscript:(id<NSCopying>)aKey
+{
+    [self setObject:anObject forKey:aKey];
+}
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 - (void)removeObjectForKey:(id<NSCopying>)aKey
 {
-    if([self._dictionary objectForKey:aKey] != nil) {
-        [self._dictionary removeObjectForKey:aKey];
-        [self._orderedKeys removeObject:aKey];
+    if([self.store objectForKey:aKey] != nil) {
+        [self.store removeObjectForKey:aKey];
+        [self.orderedKeys removeObject:aKey];
     }
 }
 
 - (void)removeObjectAtIndex:(NSUInteger)index
 {
-    id key = [self._orderedKeys objectAtIndex:index];
+    id key = [self.orderedKeys objectAtIndex:index];
     if(key) {
-        [self._orderedKeys removeObjectAtIndex:index];
-        [self._dictionary removeObjectForKey:key];
+        [self.orderedKeys removeObjectAtIndex:index];
+        [self.store removeObjectForKey:key];
     }
 
 }
 
 - (void)removeAllObjects
 {
-    [self._dictionary removeAllObjects];
-    [self._orderedKeys removeAllObjects];
+    [self.store removeAllObjects];
+    [self.orderedKeys removeAllObjects];
 }
 
-- (NSEnumerator *)keyEnumerator
-{
-    return self._orderedKeys.objectEnumerator;
-}
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark NSMutableCopying
-
+////////////////////////////////////////////////////////////////////////////////////////////////////
 - (id)mutableCopyWithZone:(NSZone *)zone
 {
     MutableOrderedDictionary *copy = [[MutableOrderedDictionary allocWithZone:zone] init];
-    copy._dictionary = [self._dictionary mutableCopyWithZone:zone];
-    copy._orderedKeys = [self._orderedKeys mutableCopyWithZone:zone];
+    copy.store = [self.store mutableCopyWithZone:zone];
+    copy.orderedKeys = [self.orderedKeys mutableCopyWithZone:zone];
     return copy;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 #pragma mark NSFastEnumeration
- 
-- (NSUInteger)countByEnumeratingWithState:(NSFastEnumerationState *)state objects:(id [])buffer count:(NSUInteger)len
+//////////////////////////////////////////////////////////////////////////////////////////////////// 
+- (NSUInteger)countByEnumeratingWithState:(NSFastEnumerationState *)state objects:(id __unsafe_unretained [])buffer count:(NSUInteger)len
 {
-    return [self._orderedKeys countByEnumeratingWithState:state objects:buffer count:len];
+    return [self.orderedKeys countByEnumeratingWithState:state objects:buffer count:len];
 }
 
 @end
